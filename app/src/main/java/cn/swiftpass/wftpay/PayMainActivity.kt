@@ -1,26 +1,34 @@
 package cn.swiftpass.wftpay
 
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.text.TextUtils
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Toast
+import com.dome.mylibrary.data.RetrofitUtils
+import com.google.gson.Gson
+import com.pay.dome.paylist.PayListActivity
+import com.pay.dome.source.BaseInfo
 import com.soonchina.pay.bean.Order
 import com.soonchina.pay.em.LimitPay
 import com.soonchina.pay.em.SignType
 import com.soonchina.pay.ui.cashier.CashierActivity
+import io.reactivex.Observer
+import io.reactivex.disposables.Disposable
 import kotlinx.android.synthetic.main.pay_main.*
+import okhttp3.RequestBody
 
 
 class PayMainActivity : Activity() {
 
     private var limitPay: LimitPay? = null
 
-    private val list1 = mutableListOf("请选择","4474", "4475")
+    private val list1 = mutableListOf("请选择", "4474", "4475")
 
-    private val list2 = mutableListOf("请选择","4450", "4458")
+    private val list2 = mutableListOf("请选择", "4450", "4458")
 
     private var pp: String = ""
 
@@ -64,7 +72,7 @@ class PayMainActivity : Activity() {
         arr_adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         //加载适配器
         spinner3.adapter = arr_adapter
-        spinner3.onItemSelectedListener = object : AdapterView.OnItemSelectedListener{
+        spinner3.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onNothingSelected(parent: AdapterView<*>?) {
 
             }
@@ -79,6 +87,14 @@ class PayMainActivity : Activity() {
             }
 
         }
+    }
+
+    fun play(view: View) {
+        startActivity(Intent(this@PayMainActivity, PayListActivity::class.java))
+    }
+
+    fun sc(view: View) {
+        et_ordernum!!.setText("${System.currentTimeMillis()}")
     }
 
     fun pay(view: View) {
@@ -102,9 +118,9 @@ class PayMainActivity : Activity() {
                 .setTimeExpire(time[1])
                 .setOrderAmount(aDouble)
                 .setTotalFee(aDouble)
-                .setCallbackUrl("baidu.com")
+                .setCallbackUrl("https://192.168.10.24/Pays/PApi/data_callback")
                 .setCustomid("MDA2MDQ5NDcO0O0O")
-                .setOrderList("[{\"storeId\":\"4450\",\"order\":\"20190423083234\"},{\"storeId\":\"4451\",\"order\":\"20190423083235\"}]")
+                .setOrderList("[{\"outOrderNo\":\"sw20190417001013222\",\"outOrderAmount\":${aDouble / 2},\"storeId\":4450},{\"outOrderNo\":\"sw20190417001013332\",\"outOrderAmount\":${aDouble / 2},\"storeId\":4458}]")
                 .setOrderName(et_ordername!!.text.toString())
                 .setBody("商品BODY")
                 .setAttach("附加数据，在查询接口和支付通知中原样返回，该字段主要用于商户携带订单的自定义数据")
@@ -112,7 +128,36 @@ class PayMainActivity : Activity() {
                 .setSubject("支付宝使用")
                 .build()
 
-        CashierActivity.startCashierActivity(this@PayMainActivity, order)
+        var map = mutableMapOf<String, String>()
+        map["orderInfo"] = Gson().toJson(order)
+        map["customid"] = "02"
+        map["orderList"] = order.orderList
+        map["outOrderId"] = s
+
+        var mapData = mutableMapOf<String, String>()
+        mapData["data"] = Gson().toJson(map)
+
+        val requestBody =
+                RequestBody.create(okhttp3.MediaType.parse("application/json; charset=utf-8"), Gson().toJson(mapData))
+
+        RetrofitUtils.getInstance().upDataData(requestBody)
+                .subscribe(object : Observer<BaseInfo> {
+                    override fun onComplete() {
+
+                    }
+
+                    override fun onSubscribe(d: Disposable) {
+                    }
+
+                    override fun onNext(t: BaseInfo) {
+                        Toast.makeText(this@PayMainActivity, t.toString(), Toast.LENGTH_SHORT).show()
+                        CashierActivity.startCashierActivity(this@PayMainActivity, order)
+                    }
+
+                    override fun onError(e: Throwable) {
+                    }
+                })
+
 
     }
 

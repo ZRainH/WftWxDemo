@@ -1,0 +1,44 @@
+package cn.swiftpass.wftpay;
+
+import android.text.TextUtils;
+
+import java.util.*;
+
+public class MapUtils {
+
+    public static String getSign(Map<String, String> map, String appId) {
+
+        String result = "";
+        try {
+            List<Map.Entry<String, String>> infoIds = new ArrayList<>(map.entrySet());
+            // 对所有传入参数按照字段名的 ASCII 码从小到大排序（字典序）
+            Collections.sort(infoIds, new Comparator<Map.Entry<String, String>>() {
+
+                public int compare(Map.Entry<String, String> o1, Map.Entry<String, String> o2) {
+                    return (o1.getKey()).toString().compareTo(o2.getKey());
+                }
+            });
+
+            // 构造签名键值对的格式
+            StringBuilder sb = new StringBuilder();
+            for (Map.Entry<String, String> item : infoIds) {
+                if (item.getKey() != null || item.getKey() != "") {
+                    String key = item.getKey();
+                    String value = item.getValue();
+                    if (!(TextUtils.isEmpty(value) || value == null)) {
+                        sb.append(key + "=" + value + "&");
+                    }
+                }
+            }
+            sb.append("key=" + EncryptionUtils.encryptMd5(JYZZ_2019));
+            result = EncryptionUtils.encryptMd5(sb.toString());
+        } catch (Exception e) {
+            return null;
+        }
+
+        return result;
+    }
+
+    public static final String JYZZ_2019 = "jyzz2019";
+
+}
